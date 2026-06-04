@@ -1026,6 +1026,16 @@ window.onload=function(){
     const panel=document.getElementById('manual-pos-panel');
     const btn=document.getElementById('apply-pos-btn');
     const err=document.getElementById('pos-error');
+    const forceAutoGpsMode=()=>{
+        sel.value='auto';
+        if(sel.value!=='auto') sel.selectedIndex=0;
+        sel.querySelector('option[value="auto"]').defaultSelected=true;
+        sel.querySelector('option[value="manual"]').defaultSelected=false;
+        panel.style.display='none';
+        document.getElementById('manual-location-info').style.display='none';
+        err.style.display='none';
+        startGPS();
+    };
     function applyManual(){
         const raw=document.getElementById('manual-coords').value.trim();
         err.style.display='none';
@@ -1041,10 +1051,22 @@ window.onload=function(){
     document.getElementById('manual-coords').addEventListener('keydown',e=>{if(e.key==='Enter')applyManual();});
 
     // ── AUTO GPS MODE ──
-    sel.value = 'auto';
-    panel.style.display = 'none';
-    startGPS();
+    forceAutoGpsMode();
 };
+
+window.addEventListener('pageshow',()=>{
+    const sel=document.getElementById('pos-mode-select');
+    const panel=document.getElementById('manual-pos-panel');
+    const info=document.getElementById('manual-location-info');
+    const err=document.getElementById('pos-error');
+    if(!sel||!panel)return;
+    sel.value='auto';
+    if(sel.value!=='auto') sel.selectedIndex=0;
+    panel.style.display='none';
+    if(info)info.style.display='none';
+    if(err)err.style.display='none';
+    startGPS();
+});
 
 // Service Worker
 if ('serviceWorker' in navigator) {
