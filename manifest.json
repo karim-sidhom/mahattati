@@ -3,10 +3,14 @@
     "short_name": "محطتي",
     "description": "تطبيق محطتي",
     "start_url": "./index.html",
+    "scope": "./",
     "display": "standalone",
     "background_color": "#020b2e",
     "theme_color": "#020b2e",
     "orientation": "portrait-primary",
+    "lang": "ar",
+    "dir": "rtl",
+    "categories": ["utilities", "navigation"],
     "icons": [
         {
             "src": "icon.svg",

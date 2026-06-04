@@ -4,9 +4,11 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>محطتي</title>
-    <meta name="theme-color" content="#020b2e">
     <link rel="manifest" href="manifest.json">
-    <link rel="icon" href="icon.svg" type="image/svg+xml">
+    <meta name="theme-color" content="#0d1a06">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="محطتي">
     <link rel="apple-touch-icon" href="icon.svg">
     <link href="https://fonts.googleapis.com/css2?family=Amiri:ital,wght@0,400;0,700;1,400&family=Tajawal:wght@300;400;500;700;800&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/toastify-js/src/toastify.min.css" rel="stylesheet">
@@ -871,9 +873,20 @@ function startGPS(){
     document.getElementById('zone-title').textContent='محطات الوقود القريبة';
     if(!navigator.geolocation){document.getElementById('gps-txt').textContent='⚠️ GPS غير مدعوم في هذا المتصفح.';stationState('⚠️ متصفحك لا يدعم تحديد الموقع الجغرافي.');return;}
     let init=false;
+    let gpsDelayTimer=null;
+    let pendingPos=null;
     gpsWatchId=navigator.geolocation.watchPosition(pos=>{
         if(!isGoodGps(pos)){const acc=pos.coords?Math.round(pos.coords.accuracy):'?';document.getElementById('gps-txt').textContent=`📡 انتظار إشارة GPS... (دقة: ${acc} م)`;if(!init)stationState('إشارة GPS ضعيفة، يرجى الانتظار...');return;}
-        applyGps(pos,init);init=true;
+        if(!init){applyGps(pos,false);init=true;return;} // premier fix : immédiat
+        pendingPos=pos;
+        if(gpsDelayTimer) return; // déjà en compte à rebours
+        let countdown=20;
+        document.getElementById('gps-txt').textContent=`📡 تحديد الموقع... (${countdown}ث)`;
+        gpsDelayTimer=setInterval(()=>{
+            countdown--;
+            if(countdown>0){document.getElementById('gps-txt').textContent=`📡 تحديد الموقع... (${countdown}ث)`;}
+            else{clearInterval(gpsDelayTimer);gpsDelayTimer=null;applyGps(pendingPos,true);}
+        },1000);
     },err=>{const msgs={1:'⚠️ رُفض إذن GPS. يرجى السماح بالموقع في المتصفح.',2:'⚠️ GPS غير متاح أو الإشارة ضعيفة.',3:'⚠️ انتهت مهلة GPS. حاول مجدداً.'};const msg=(err&&msgs[err.code])||'⚠️ خطأ GPS غير معروف.';document.getElementById('gps-txt').textContent=msg;stationState(msg);if(err&&err.code===1&&gpsWatchId!==null){navigator.geolocation.clearWatch(gpsWatchId);gpsWatchId=null;}},GPS_OPT);
 }
 
@@ -1027,20 +1040,18 @@ window.onload=function(){
     btn.onclick=applyManual;
     document.getElementById('manual-coords').addEventListener('keydown',e=>{if(e.key==='Enter')applyManual();});
 
-    // ── TEST MODE : بلدية تونس العاصمة ──
-    // lat: 36.8190, lng: 10.1658
-    sel.value = 'manual';
-    panel.style.display = 'flex';
-    document.getElementById('manual-coords').value = '36.819000, 10.165800';
-    initApp(36.819000, 10.165800);
+    // ── AUTO GPS MODE ──
+    sel.value = 'auto';
+    panel.style.display = 'none';
+    startGPS();
 };
 
-// Register Service Worker for PWA
+// Service Worker
 if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
-        navigator.serviceWorker.register('sw.js')
-            .then(reg => console.log('Service Worker registered', reg))
-            .catch(err => console.error('Service Worker registration failed:', err));
+        navigator.serviceWorker.register('./sw.js').catch(err => {
+            console.warn('Service worker registration failed:', err);
+        });
     });
 }
 </script>
